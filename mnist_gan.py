@@ -13,7 +13,8 @@ import theano.tensor as T
 from keras.utils import np_utils
 import keras.models as models
 from keras.layers import Input,merge
-from keras.layers.core import Reshape,Dense,Dropout,Activation,Flatten,MaxoutDense
+# from keras.layers.core import Reshape,Dense,Dropout,Activation,Flatten,MaxoutDense
+from keras.layers.core import Reshape,Dense,Dropout,Activation,Flatten
 from keras.layers.advanced_activations import LeakyReLU
 from keras.activations import *
 from keras.layers.wrappers import TimeDistributed
@@ -25,7 +26,7 @@ from keras.layers.normalization import *
 from keras.optimizers import *
 from keras.datasets import mnist
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 import cPickle, random, sys, keras
 from keras.models import Model
 #from IPython import display
@@ -64,18 +65,22 @@ dopt = Adam(lr=1e-3)
 # Build Generative model ...
 nch = 200
 g_input = Input(shape=[100])
-H = Dense(nch*14*14, init='glorot_normal')(g_input)
-H = BatchNormalization(mode=2)(H)
+# H = Dense(nch*14*14, init='glorot_normal')(g_input)
+H = Dense(nch*14*14, kernel_initializer='glorot_normal')(g_input)
+# H = BatchNormalization(mode=2)(H)
+H = BatchNormalization()(H)
 H = Activation('relu')(H)
 H = Reshape( [nch, 14, 14] )(H)
-H = UpSampling2D(size=(2, 2))(H)
-H = Convolution2D(nch/2, 3, 3, border_mode='same', init='glorot_uniform')(H)
-H = BatchNormalization(mode=2)(H)
+H = UpSampling2D(size=(2, 2), data_format='channels_first')(H)
+H = Convolution2D(filters=nch/2, kernel_size=(3, 3), border_mode='same', data_format='channels_first', init='glorot_uniform')(H)
+# H = BatchNormalization(mode=2)(H)
+H = BatchNormalization()(H)
 H = Activation('relu')(H)
-H = Convolution2D(nch/4, 3, 3, border_mode='same', init='glorot_uniform')(H)
-H = BatchNormalization(mode=2)(H)
+H = Convolution2D(filters=nch/4, kernel_size=(3, 3), border_mode='same', data_format='channels_first', init='glorot_uniform')(H)
+# H = BatchNormalization(mode=2)(H)
+H = BatchNormalization()(H)
 H = Activation('relu')(H)
-H = Convolution2D(1, 1, 1, border_mode='same', init='glorot_uniform')(H)
+H = Convolution2D(filters=1, kernel_size=(1, 1), border_mode='same', data_format='channels_first', init='glorot_uniform')(H)
 g_V = Activation('sigmoid')(H)
 generator = Model(g_input,g_V)
 generator.compile(loss='binary_crossentropy', optimizer=opt)
@@ -84,10 +89,10 @@ generator.summary()
 
 # Build Discriminative model ...
 d_input = Input(shape=shp)
-H = Convolution2D(256, 5, 5, subsample=(2, 2), border_mode = 'same', activation='relu')(d_input)
+H = Convolution2D(filters=256, kernel_size=(5, 5), subsample=(2, 2), border_mode = 'same', data_format='channels_first', activation='relu')(d_input)
 H = LeakyReLU(0.2)(H)
 H = Dropout(dropout_rate)(H)
-H = Convolution2D(512, 5, 5, subsample=(2, 2), border_mode = 'same', activation='relu')(H)
+H = Convolution2D(filters=512, kernel_size=(5, 5), subsample=(2, 2), border_mode = 'same', data_format='channels_first', activation='relu')(H)
 H = LeakyReLU(0.2)(H)
 H = Dropout(dropout_rate)(H)
 H = Flatten()(H)
@@ -202,17 +207,20 @@ def train_for_n(nb_epoch=5000, plt_frq=25,BATCH_SIZE=32):
         
 
 # Train for 6000 epochs at original learning rates
-train_for_n(nb_epoch=6000, plt_frq=500,BATCH_SIZE=32)
+# train_for_n(nb_epoch=6000, plt_frq=500,BATCH_SIZE=32)
+train_for_n(nb_epoch=1, plt_frq=500,BATCH_SIZE=32)
 
 # Train for 2000 epochs at reduced learning rates
 opt.lr.set_value(1e-5)
 dopt.lr.set_value(1e-4)
-train_for_n(nb_epoch=2000, plt_frq=500,BATCH_SIZE=32)
+# train_for_n(nb_epoch=2000, plt_frq=500,BATCH_SIZE=32)
+train_for_n(nb_epoch=1, plt_frq=500,BATCH_SIZE=32)
 
 # Train for 2000 epochs at reduced learning rates
 opt.lr.set_value(1e-6)
 dopt.lr.set_value(1e-5)
-train_for_n(nb_epoch=2000, plt_frq=500,BATCH_SIZE=32)
+# train_for_n(nb_epoch=2000, plt_frq=500,BATCH_SIZE=32)
+train_for_n(nb_epoch=1, plt_frq=500,BATCH_SIZE=32)
 
 # Plot the final loss curves
 plot_loss(losses)
